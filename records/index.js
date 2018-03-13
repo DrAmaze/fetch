@@ -539,5 +539,5 @@ app.get('/records', function (req, res) {
 });
 
 app.listen(3000, function () {
-  console.log('Records API listening on port 3000!')
+  console.log('Records API listening on port 3000!');
 });
