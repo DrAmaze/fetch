@@ -9,13 +9,10 @@ function retrieve(options = {}) {
   if (!options.page) options.page = 1;
   if (!options.colors) options.colors = [];
   var limit = 10;
-
-  fetch(window.path, options)
-    .then(function(response) {
-      response.json();
-    }).then(function(myJson) {
-      console.log(myJson);
-    });
+  var uri = URI(window.path).search(options);
+  let path = window.path + "?" + uri.query();
+  console.log(path)
+  fetch(path);
 }
 
 export default retrieve;
