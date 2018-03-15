@@ -8,9 +8,11 @@ function retrieve(options = {}) {
   // decompose search parameters from input
   if (!options.page) options.page = 1;
   if (!options.colors) options.colors = [];
-  options.limit = 10;
 
+  // set the page displayed using the offset query.
+  options.limit = 10;
   options.offset = (options.page - 1) * options.limit;
+
   // rewriting the options object to fit the query constraints. The
   // options object is given with a key of 'colors' while the query
   // query needs to be made with 'color[]'
@@ -19,7 +21,7 @@ function retrieve(options = {}) {
     options["color[]"].push(color);
   });
 
-  // format search parameters;
+  // format search parameters to not include excess information;
   delete options.colors;
   delete options.page;
 
@@ -50,6 +52,7 @@ function postData(data) {
       .then(function(response) {
         console.log(response)
         if (response.status !== 200) {
+          console.log("Request unsuccessful")
           response.text()
             .then(function(text) {
               reject(text);
