@@ -9,16 +9,31 @@ function retrieve(options = {}) {
   if (!options.offset) options.offset = 0;
   if (!options.page) options.page = 1;
   if (!options.colors) options.colors = [];
+
+  // rewriting the options object to fit the query constraints. The
+  // options object is given with a key of 'colors' while the query
+  // query needs to be made with 'color[]'
+  if (!options["color[]"]) options["color[]"] = [];
+  options.colors.forEach(function(color) {
+    options["color[]"].push(color);
+  });
+  delete options.colors;
+
   options.limit = 10;
   var uri = URI(window.path).search(options);
-  let query = window.path + "?" + uri.query() ;
+  let query = window.path + "?" + uri.query();
   console.log(query);
+  // console.log(query);
   // fetch(query)
   //   .then(function(response) {
   //     return response.json();
   //   });
   // }
-  postData(query); // what do i put as the second arg?
+  postData(query).then(function(response) {
+    console.log(response);
+  }).catch(function(error) {
+    console.log(error);
+  });
 }
 
 function postData(data) {
@@ -32,9 +47,15 @@ function postData(data) {
     })
       .then(function(response) {
         if (response.status !== 200) {
-          reject(new Error('hello'));
+          response.text()
+            .then(function(text) {
+              reject(text);
+            });
         }
-        resolve(response.json());
+        response.json()
+          .then(function(response) {
+            resolve(response);
+          });
       });
   });
 }
