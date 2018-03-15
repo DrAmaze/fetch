@@ -9,6 +9,7 @@ function retrieve(options = {}) {
   if (!options.offset) options.offset = 0;
   if (!options.page) options.page = 1;
   if (!options.colors) options.colors = [];
+  options.limit = 10;
 
   // rewriting the options object to fit the query constraints. The
   // options object is given with a key of 'colors' while the query
@@ -19,17 +20,14 @@ function retrieve(options = {}) {
   });
   delete options.colors;
 
-  options.limit = 10;
   var uri = URI(window.path).search(options);
   let query = window.path + "?" + uri.query();
-  console.log(query);
-  // console.log(query);
-  // fetch(query)
-  //   .then(function(response) {
-  //     return response.json();
-  //   });
-  // }
-  postData(query).then(function(response) {
+
+  // construct an object to house all of the fetch promise constraints.
+  var data = {};
+  data.path = query;
+
+  return postData(data).then(function(response) {
     console.log(response);
   }).catch(function(error) {
     console.log(error);
@@ -52,6 +50,7 @@ function postData(data) {
               reject(text);
             });
         }
+        console.log(response)
         response.json()
           .then(function(response) {
             resolve(response);
