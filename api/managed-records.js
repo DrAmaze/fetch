@@ -34,11 +34,13 @@ function retrieve(options = {}) {
   var data = {};
   data.path = query;
 
-  return getData(data).then(function(response) {
+  var payload = getData(data).then(function(response) {
     console.log(response);
   }).catch(function(error) {
     console.log(error);
   });
+
+  return transformPayload(payload);
 }
 
 function getData(data) {
@@ -68,7 +70,7 @@ function getData(data) {
   });
 }
 
-function parsePayload(payload, page) {
+function transformPayload(payload, page) {
   var data = {
     ids: [],
     open: [],
@@ -77,7 +79,7 @@ function parsePayload(payload, page) {
 
   // parse page data
   data.previousPage = (page === 1) ? null : page - 1;
-  data.nextPage = (page === 50) ? null : page + 1;
+  data.nextPage = (page >= 50) ? null : page + 1;
 
   var primaryColors = ['red', 'blue', 'yellow'];
   payload.forEach(function(datum) {
