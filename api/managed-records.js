@@ -12,9 +12,14 @@ function retrieve(options = {}) {
     var page = options.page;          // used to format payload
     if (!options.colors) options.colors = [];
 
-    // set the page displayed using the offset query.
-    options.limit = 10;
-    options.offset = (options.page - 1) * options.limit;
+    // set the page displayed using the number of items to be returned.
+    // The number of items to be returned is 10. The limit of the
+    // request is set to 11 so that it can be determined whether or not
+    // there is any data available on the next page. If there is data in
+    // the final index of the returned array, then the next is page++.
+    // If not, then nextPage = null.
+    options.limit = 11;
+    options.offset = (options.page - 1) * (options.limit - 1);
 
     // rewriting the options object to fit the query constraints. The
     // options object is given with a key of 'colors' while the query
@@ -52,7 +57,6 @@ function getData(data) {
       // body: data.body || {}
     })
     .then(function(response) {
-      // console.log('RES',response);
       if (!response.ok) {
         throw Error(response.statusText);
       }
@@ -63,7 +67,6 @@ function getData(data) {
       resolve(response);
     })
     .catch(function(error) {
-      // console.log('ERRRRR', error);
       reject(error);
     });
   });
@@ -76,14 +79,22 @@ function transformPayload(payload, page) {
     closedPrimaryCount: 0
   };
 
-  // for empty results
+  // logic for empty results
   if (payload.length === 0 && page === 1) {
     data.previousPage = null;
     data.nextPage = null;
   } else {
-    // parse page data
+    // logic to determine previous page
     data.previousPage = (page === 1) ? null : page - 1;
-    data.nextPage = (page >= 50) ? null : page + 1;
+    // logic to determine whether or not the next page has data. If
+    // payload returns 11 objects, the the next page is page + 1. If not
+    // the next page is null.
+    if (payload.length > 10) {
+      data.nextPage = page + 1;
+      payload.pop();            // Ensure output is appropriately sized.
+    } else {
+      data.nextPage = null;
+    }
   }
 
   var primaryColors = ['red', 'blue', 'yellow'];
