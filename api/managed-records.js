@@ -5,12 +5,11 @@ import URI from "urijs";
 window.path = "http://localhost:3000/records";
 
 function retrieve(options = {}) {
-
   // decompose search parameters from input
   return new Promise(function(resolve, reject) {
-    if (!options.page) options.page = 1;
-    var page = options.page;          // used to format payload
-    if (!options.colors) options.colors = [];
+    if (!options.page) options.page = 1;      // default to page 1
+    var page = options.page;                  // used to format payload
+    if (!options.colors) options.colors = []; // default to all colors
 
     // set the page displayed using the number of items to be returned.
     // The number of items to be returned is 10. The limit of the
@@ -33,90 +32,103 @@ function retrieve(options = {}) {
     delete options.colors;
     delete options.page;
 
+    // Leverage URI.js library to format the query string.
     var uri = URI(window.path).search(options);
     let query = window.path + "?" + uri.query();
 
-    // construct an object to house all of the fetch promise constraints.
+    // construct an object to house all of the fetch promise constraints
     var data = {};
     data.path = query;
+
+    // make a GET request to the appropriate API endpoint and then
+    // transform the payload.
     getData(data).then(function(response) {
       resolve(transformPayload(response, page));
     }).catch(function(error) {
-      console.log(error);
       reject(error);
     });
   });
 }
 
+// This function takes an input which formats the fetch() request. In
+// the context of this problem, the only parameters needed are the path
+// and the method; however, it is good practice to create a function
+// that is more dynamic and accessible different types of requests,
+// hence the other key/value pairs in the second argument.
 function getData(data) {
-  return new Promise(function (resolve, reject) {
-    fetch(data.path, {
-      method: 'GET',
-      headers: data.headers || {},
-      queryParams: data.queryParams || {},
-      // body: data.body || {}
-    })
+  return fetch(data.path, {
+    method: 'GET',
+    headers: data.headers || {},
+    queryParams: data.queryParams || {},
+  })
     .then(function(response) {
-      if (!response.ok) {
-        throw Error(response.statusText);
-      }
-
-      return response.json();
+      return response.json().then(function(json) {
+        return response.ok ? json : Promise.reject(json);
+      });
     })
-    .then(function(response) {
-      resolve(response);
-    })
-    .catch(function(error) {
-      reject(error);
+    .catch(function(err) {
+      return new Error(err);
     });
-  });
 }
 
+// This function houses the logic for manipulating the return from the
+// GET request (payload) into the expected output. It takes in the
+// payload array and the requested page number. This function uses
+// an object, data, to transform the payload into the format defined
+// in the prompt.
 function transformPayload(payload, page) {
-  var data = {
-    ids: [],
-    open: [],
-    closedPrimaryCount: 0
-  };
+  try {
+    // Format output data.
+    var data = {
+      ids: [],
+      open: [],
+      closedPrimaryCount: 0
+    };
 
-  // Format the nextPage and previousPage for output values
+    // Format the nextPage and previousPage for output values
 
-  // logic for empty results
-  if (payload.length === 0 && page === 1) {
-    data.previousPage = null;
-    data.nextPage = null;
-  } else {
-    // logic to determine previous page
-    data.previousPage = (page === 1) ? null : page - 1;
-    // logic to determine whether or not the next page has data. If
-    // payload returns 11 objects, the the next page is page + 1. If not
-    // the next page is null.
-    if (payload.length > 10) {
-      data.nextPage = page + 1;
-      payload.pop();            // Ensure output is appropriately sized.
-    } else {
+    // logic for empty results
+    if (payload.length === 0 && page === 1) {
+      data.previousPage = null;
       data.nextPage = null;
+    } else {
+      // logic to determine value of previous page
+      data.previousPage = (page === 1) ? null : page - 1;
+
+      // logic to determine whether or not the next page has data. If
+      // payload returns 11 objects, the the next page is page + 1. If not
+      // the next page is null.
+      if (payload.length > 10) {
+        data.nextPage = page + 1;
+        payload.pop();            // Ensure output is appropriately sized.
+      } else {
+        data.nextPage = null;
+      }
     }
+
+    var primaryColors = ['red', 'blue', 'yellow'];
+    payload.forEach(function(datum) {
+      // add id to data
+      data.ids.push(datum.id);
+
+      // determine whether or not datum is primary color
+      var primary = primaryColors.includes(datum.color);
+
+      if (datum.disposition === 'open') {
+        // add isPrimary to datum, then add to output
+        datum.isPrimary = primary;
+        data.open.push(datum);
+      } else if(datum.disposition === 'closed' && primary) {
+        data.closedPrimaryCount++;
+      }
+    });
+
+    return data;
+
+  } catch(err) {
+    console.log('Invalid API endpoint', err);
   }
 
-  var primaryColors = ['red', 'blue', 'yellow'];
-  payload.forEach(function(datum) {
-    // add id to data
-    data.ids.push(datum.id);
-
-    // determine whether or not datum is primary color
-    var primary = primaryColors.includes(datum.color);
-
-    if (datum.disposition === 'open') {
-      // add isPrimary to datum, then add to output
-      datum.isPrimary = primary;
-      data.open.push(datum);
-    } else if(datum.disposition === 'closed' && primary) {
-      data.closedPrimaryCount++;
-    }
-  });
-
-  return data;
 }
 
 export default retrieve;
