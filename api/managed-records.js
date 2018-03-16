@@ -5,67 +5,67 @@ import URI from "urijs";
 window.path = "http://localhost:3000/records";
 
 function retrieve(options = {}) {
+
   // decompose search parameters from input
-  if (!options.page) options.page = 1;
-  var page = options.page;          // used to format payload
-  if (!options.colors) options.colors = [];
+  return new Promise(function(resolve, reject) {
+    if (!options.page) options.page = 1;
+    var page = options.page;          // used to format payload
+    if (!options.colors) options.colors = [];
 
-  // set the page displayed using the offset query.
-  options.limit = 10;
-  options.offset = (options.page - 1) * options.limit;
+    // set the page displayed using the offset query.
+    options.limit = 10;
+    options.offset = (options.page - 1) * options.limit;
 
-  // rewriting the options object to fit the query constraints. The
-  // options object is given with a key of 'colors' while the query
-  // query needs to be made with 'color[]'
-  if (!options["color[]"]) options["color[]"] = [];
-  options.colors.forEach(function(color) {
-    options["color[]"].push(color);
+    // rewriting the options object to fit the query constraints. The
+    // options object is given with a key of 'colors' while the query
+    // query needs to be made with 'color[]'
+    if (!options["color[]"]) options["color[]"] = [];
+    options.colors.forEach(function(color) {
+      options["color[]"].push(color);
+    });
+
+    // format search parameters to not include excess information;
+    delete options.colors;
+    delete options.page;
+
+    var uri = URI(window.path).search(options);
+    let query = window.path + "?" + uri.query();
+
+    // construct an object to house all of the fetch promise constraints.
+    var data = {};
+    data.path = query;
+    getData(data).then(function(response) {
+      console.log(response);
+      resolve(transformPayload(response, page));
+    }).catch(function(error) {
+      console.log(error);
+      reject(error);
+    });
   });
-
-  // format search parameters to not include excess information;
-  delete options.colors;
-  delete options.page;
-
-  var uri = URI(window.path).search(options);
-  let query = window.path + "?" + uri.query();
-  console.log(query)
-
-  // construct an object to house all of the fetch promise constraints.
-  var data = {};
-  data.path = query;
-
-  var payload = getData(data).then(function(response) {
-    console.log(response);
-  }).catch(function(error) {
-    console.log(error);
-  });
-
-  return transformPayload(payload);
 }
 
 function getData(data) {
   return new Promise(function (resolve, reject) {
-    fetch({
-      path: data.path,
+    fetch(data.path, {
       method: 'GET',
       headers: data.headers || {},
       queryParams: data.queryParams || {},
-      body: JSON.stringify(data) || {}
+      // body: data.body || {}
     })
     .then(function(response) {
-      console.log('fetched response', response);
-      if (response.status !== 200) {
-        console.log("Request unsuccessful");
-        response.text()
-        .then(function(text) {
-          console.log('text', text);
-          reject(text);
-        });
+      // console.log('RES',response);
+      if (!response.ok) {
+        throw Error(response.statusText);
       }
-      response.json()
-      .then(function(finalResponse) {
-        resolve(finalResponse);
-      });
+
+      return response.json();
+    })
+    .then(function(response) {
+      resolve(response);
+    })
+    .catch(function(error) {
+      // console.log('ERRRRR', error);
+      reject(error);
     });
   });
 }
@@ -88,12 +88,13 @@ function transformPayload(payload, page) {
 
     // determine whether or not datum is primary color
     var primary = primaryColors.includes(datum.color);
-    if (primary) data.closedPrimaryCount++;
 
     if (datum.disposition === 'open') {
       // add isPrimary to datum, then add to output
       datum.isPrimary = primary;
       data.open.push(datum);
+    } else if(datum.disposition === 'closed' && primary) {
+      data.closedPrimaryCount++;
     }
   });
 

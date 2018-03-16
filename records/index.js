@@ -512,6 +512,7 @@ app.use(function(req, res, next) {
 });
 
 app.get('/records', function (req, res) {
+  console.log('WE HIT THAT API');
   var limit = parseInt(req.query.limit) || 100;
   var offset = parseInt(req.query.offset) || 0;
   var colorFilters = req.query.color;
