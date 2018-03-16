@@ -79,6 +79,8 @@ function transformPayload(payload, page) {
     closedPrimaryCount: 0
   };
 
+  // Format the nextPage and previousPage for output values
+
   // logic for empty results
   if (payload.length === 0 && page === 1) {
     data.previousPage = null;
