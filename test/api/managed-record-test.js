@@ -44,6 +44,19 @@ describe("Records", function() {
     });
   });
 
+  it('last page of return should have null next page', function(done) {
+    var expected = {
+      "previousPage": 9,
+      "nextPage": null,
+      "ids": [486, 497, 498],
+      "open": [{"id":486,"color":"yellow","disposition":"open","isPrimary":true}],
+      "closedPrimaryCount": 2
+    };
+    retrieve({page: 10, colors: ["yellow"]}).then(function(output){
+      expect(output).toEqual(expected);
+    }).then(done);
+  });
+
   it('should return an empty set of results for pages after the last page', function(done){
     var expected = {"previousPage":50,"nextPage":null,"ids":[],"open":[],"closedPrimaryCount":0};
     retrieve({page: 51}).then(function(output){
